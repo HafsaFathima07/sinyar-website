@@ -20,6 +20,7 @@ const port = Number(env.PORT || 3000);
 const frontendUrl = env.FRONTEND_URL || `http://localhost:${port}`;
 const nodeEnv = env.NODE_ENV || 'development';
 const storageProvider = env.STORAGE_PROVIDER || 'local';
+const isVercel = env.VERCEL === '1' || Boolean(env.VERCEL);
 const databaseUrl = env.DATABASE_URL || '';
 const databaseNeedsSsl = nodeEnv === 'production' || env.DATABASE_SSL === 'true' || /supabase\.(co|com)/i.test(databaseUrl);
 const missing = ['DATABASE_URL', 'SESSION_SECRET'].filter(name => !env[name] || env[name].startsWith('replace-'));
@@ -38,6 +39,9 @@ const pool = new Pool({
 pool.on('error', error => console.error(`PostgreSQL pool error: ${error.message}`));
 const PgStore = pgSession(session);
 const uploadDir = path.resolve(__dirname, env.UPLOAD_DIR || './uploads');
+if (isVercel && storageProvider !== 's3') {
+  throw new Error('Vercel production requires STORAGE_PROVIDER=s3; local filesystem storage is unavailable.');
+}
 const storage = createStorage({ provider: storageProvider, uploadDir, endpoint: env.S3_ENDPOINT, region: env.S3_REGION, bucket: env.S3_BUCKET, accessKeyId: env.S3_ACCESS_KEY_ID, secretKey: env.S3_SECRET_KEY });
 const app = express();
 const asyncHandler = handler => (req, res, next) => Promise.resolve(handler(req, res, next)).catch(next);
@@ -58,7 +62,10 @@ const allowedTypes = new Map([
   ['xls', ['application/vnd.ms-excel', 'application/octet-stream']],
   ['csv', ['text/csv', 'application/csv', 'application/vnd.ms-excel', 'application/octet-stream']]
 ]);
-const upload = multer({ dest: uploadDir, limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (_req, file, cb) => { const extension = path.extname(file.originalname).slice(1).toLowerCase(); cb(null, allowedTypes.has(extension) && allowedTypes.get(extension).includes(file.mimetype)); } });
+const uploadStorage = isVercel || storageProvider === 's3'
+  ? multer.memoryStorage()
+  : multer.diskStorage({ destination: uploadDir });
+const upload = multer({ storage: uploadStorage, limits: { fileSize: 25 * 1024 * 1024 }, fileFilter: (_req, file, cb) => { const extension = path.extname(file.originalname).slice(1).toLowerCase(); cb(null, allowedTypes.has(extension) && allowedTypes.get(extension).includes(file.mimetype)); } });
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: frontendUrl, credentials: true }));
@@ -120,7 +127,7 @@ app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'sinyar_enterprise
 app.use(express.static(__dirname));
 app.use((error, _req, res, _next) => { if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File exceeds the 25 MB limit.' }); const status = error.status || (error.code === '23505' ? 409 : 500); if (status >= 500) console.error(error); res.status(status).json({ error: status === 500 ? 'Internal server error.' : error.message }); });
 
-async function start() { if (process.exitCode) return; try { await storage.init(); await pool.query('SELECT 1'); await ensureAdmin(); app.listen(port, () => console.log(`Sinyar Tracker backend listening on ${frontendUrl} (${nodeEnv})`)); } catch (error) { console.error(`Startup failed: unable to connect to PostgreSQL. ${error.message}`); process.exitCode = 1; } }
+async function start() { if (process.exitCode) return; try { if (!isVercel) await storage.init(); await pool.query('SELECT 1'); await ensureAdmin(); app.listen(port, () => console.log(`Sinyar Tracker backend listening on ${frontendUrl} (${nodeEnv})`)); } catch (error) { console.error(`Startup failed: unable to connect to PostgreSQL. ${error.message}`); process.exitCode = 1; } }
 if (nodeEnv === 'production' && storageProvider !== 's3') throw new Error('STORAGE_PROVIDER=s3 is required in production.');
 if (!env.VERCEL) await start();
 export { app, pool };

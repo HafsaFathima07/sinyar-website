@@ -9,7 +9,7 @@ export function createStorage({ provider = 'local', uploadDir, endpoint, region,
     const client = new S3Client({ endpoint, region: region || 'auto', forcePathStyle: Boolean(endpoint), credentials: { accessKeyId, secretAccessKey: secretKey } });
     return {
       async init() {},
-      async save(file) { const key = crypto.randomUUID(); const body = await fs.readFile(file.path); await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: file.mimetype })); await fs.unlink(file.path).catch(() => {}); return { key }; },
+      async save(file) { const key = crypto.randomUUID(); const body = file.buffer || await fs.readFile(file.path); await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: file.mimetype })); if (file.path) await fs.unlink(file.path).catch(() => {}); return { key }; },
       async remove(key) { await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key })); },
       async stream(key) { return (await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))).Body; }
     };
