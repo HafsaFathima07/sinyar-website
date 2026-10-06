@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SINYAR Tracker Suite - Enterprise Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #0f172a;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .sidebar-btn {
+            cursor: pointer !important;
+            user-select: none;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .sidebar-btn.active-tab {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .table-projects thead, .table-procurement thead, .table-materials thead, .table-quotations thead, .table-users thead { 
+            background-color: #0f172a; 
+            color: #94a3b8; 
+            border-bottom: 1px solid #334155;
+        }
+        
+        .table-projects thead th, 
+        .table-procurement thead th, 
+        .table-materials thead th,
+        .table-quotations thead th,
+        .table-users thead th {
+            position: sticky;
+            top: 0;
+            background-color: #0f172a;
+            z-index: 20;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+            border-bottom: 2px solid #334155;
+        }
+        
+        tbody tr:nth-child(even) { background-color: #1e293b; }
+        tbody tr:nth-child(odd) { background-color: #0f172a; }
+        tbody tr:hover { background-color: #334155; transition: background-color 0.2s; }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 6px;
+            border: 2px solid #0f172a;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6;
+        }
+
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #3b82f6 #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #3b82f6;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background-color: #0f172a;
+        }
+
+        @media print {
+            body { background-color: white; color: black; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .tab-content { display: none; }
+            .tab-content.active { display: block; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd !important; padding: 8px !important; color: black !important; }
+            thead th { background: #f3f4f6 !important; color: black !important; }
+        }
+        .print-only { display: none; }
+        .logo-img { max-height: 40px; object-fit: contain; }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-slate-900 text-slate-200">
+
+    <div id="auth-screen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-blue-600/10 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="text-center mb-8">
+                <div class="inline-flex p-3 bg-blue-600/20 text-blue-400 rounded-xl mb-4 border border-blue-500/30">
+                    <i class="fas fa-shield-alt text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white tracking-wide">Sinyar Enterprise Suite</h2>
+                <p class="text-xs text-slate-400 mt-1">Sign in with your organizational user ID or admin credentials</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">User ID / Username</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
+                            <i class="fas fa-user text-xs"></i>
+                        </span>
+                        <input type="text" id="login-userid" required placeholder="e.g. SALEEM or user1" class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">Secure Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
+                            <i class="fas fa-lock text-xs"></i>
+                        </span>
+                        <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-medium">
+                    </div>
+                </div>
+
+                <button type="submit" id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 cursor-pointer mt-2">
+                    <i class="fas fa-sign-in-alt"></i> Authenticate Session
+                </button>
+            </form>
+
+            <div class="mt-6 pt-4 border-t border-slate-800 text-center">
+                <p class="text-[11px] text-slate-500 flex items-center justify-center gap-1">
+                    <i class="fas fa-server text-emerald-400"></i> Enterprise Database Active (Admin: SALEEM)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-app" class="h-full flex flex-col hidden">
+        <header class="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center no-print z-10 sticky top-0">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-1 rounded">
+                    <img src="images.png" alt="Sinyar Logo" class="logo-img" onerror="this.src='https://placehold.co/150x50/ffffff/000000?text=SINYAR'">
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide text-white hidden sm:block">Tracker Suite</h1>
+                    <span id="user-badge" class="text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"></span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleFullScreen()" id="fullscreen-btn" class="bg-slate-800 border border-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded-lg shadow-sm transition flex items-center gap-2 font-medium text-xs cursor-pointer" title="Toggle Fullscreen">
+                    <i class="fas fa-expand text-blue-400" id="fullscreen-icon"></i> 
+                    <span id="fullscreen-text" class="hidden sm:inline">Full Screen</span>
+                </button>
+                <button onclick="saveToCloudFolder()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg shadow-sm transition flex items-center gap-2 font-medium text-xs cursor-pointer" title="Backup Package">
+                    <i class="fas fa-cloud-upload-alt"></i> Backup Package
+                </button>
+                <button onclick="window.print()" class="bg-slate-800 border border-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2 font-medium text-xs cursor-pointer">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button onclick="handleLogout()" class="bg-rose-900/60 hover:bg-rose-700 text-rose-300 hover:text-white border border-rose-700/50 px-3 py-2 rounded-lg text-xs font-medium transition cursor-pointer" title="Sign Out">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </button>
+            </div>
+        </header>
+
+        <div class="print-only text-center py-6 border-b-2 border-gray-200 mb-6">
+            <img src="images.png" alt="Sinyar Logo" class="print-logo" onerror="this.style.display='none'">
+            <h2 id="print-report-title" class="text-xl text-gray-600 font-bold mt-4">Operations Report</h2>
+            <div id="print-project-details" class="text-sm text-gray-600 font-medium mt-1"></div>
+            <p class="text-xs text-gray-500 mt-2">Generated on: <span id="current-date"></span></p>
+        </div>
+
+        <div class="flex-1 flex overflow-hidden">
+            <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col no-print z-0 h-full select-none overflow-y-auto custom-scrollbar">
+                <div class="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Navigation Menu
+                </div>
+                <nav class="flex-1 p-3 space-y-2">
+                    <button onclick="switchTab('materials')" id="btn-materials" class="sidebar-btn active-tab w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium bg-slate-800 text-blue-400 shadow-sm border border-slate-700/80 cursor-pointer">
+                        <div class="p-2 bg-slate-900 rounded-md text-blue-500"><i class="fas fa-boxes fa-fw"></i></div>
+                        <span>Material Weekly Report</span>
+                    </button>
+                    <button onclick="switchTab('quotations')" id="btn-quotations" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent cursor-pointer">
+                        <div class="p-2 bg-slate-800 rounded-md text-slate-500"><i class="fas fa-file-invoice-dollar fa-fw"></i></div>
+                        <span>Quotation Tracker</span>
+                    </button>
+                    <button onclick="switchTab('procurement')" id="btn-procurement" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent cursor-pointer">
+                        <div class="p-2 bg-slate-800 rounded-md text-slate-500"><i class="fas fa-shopping-basket fa-fw"></i></div>
+                        <span>Procurement Tracker</span>
+                    </button>
+                    <!-- Admin Only Tab (Hidden for regular users) -->
+                    <button onclick="switchTab('admin')" id="btn-admin" class="sidebar-btn w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent cursor-pointer hidden">
+                        <div class="p-2 bg-slate-800 rounded-md text-amber-500"><i class="fas fa-users-cog fa-fw"></i></div>
+                        <span>User Management</span>
+                    </button>
+                </nav>
+            </aside>
+
+            <main class="flex-1 overflow-auto custom-scrollbar p-6 lg:p-8 relative bg-slate-950">
+                <div class="max-w-7xl mx-auto">
+
+                    <!-- Admin User Management Tab -->
+                    <div id="admin" class="tab-content">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 no-print">
+                            <div>
+                                <h2 class="text-2xl font-semibold text-white">User Management Console</h2>
+                                <p class="text-slate-400 text-sm mt-1">Create and manage authorized user credentials for application access</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg lg:col-span-1">
+                                <h3 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
+                                    <i class="fas fa-user-plus text-blue-400"></i> Add New User
+                                </h3>
+                                <form onsubmit="handleCreateUser(event)" class="space-y-4">
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">User ID</label>
+                                        <input type="text" id="new-user-id" required placeholder="e.g. john_doe" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-medium">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">Password</label>
+                                        <input type="password" id="new-user-pass" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-medium">
+                                    </div>
+                                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg text-xs uppercase tracking-wider transition shadow flex items-center justify-center gap-2 cursor-pointer">
+                                        <i class="fas fa-user-check"></i> Create User Account
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="bg-slate-800 border border-slate-700 rounded-xl shadow-lg lg:col-span-2 overflow-hidden flex flex-col">
+                                <div class="p-4 bg-slate-900 border-b border-slate-700 font-semibold text-sm text-white flex items-center gap-2">
+                                    <i class="fas fa-users text-emerald-400"></i> Authorized Server Users
+                                </div>
+                                <div class="overflow-x-auto custom-scrollbar flex-1">
+                                    <table class="w-full text-left border-collapse table-users min-w-max">
+                                        <thead>
+                                            <tr>
+                                                <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">User ID</th>
+                                                <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Role</th>
+                                                <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Created Date</th>
+                                                <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center no-print text-slate-400">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="users-body" class="text-slate-300 text-xs"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quotation Tracker Tab -->
+                    <div id="quotations" class="tab-content">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 no-print">
+                            <div>
+                                <h2 class="text-2xl font-semibold text-white">Quotation Tracker</h2>
+                                <p class="text-slate-400 text-sm mt-1">Upload supplier quotes (PDF/Excel), search by Project Number, and compare bids</p>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                                <div class="relative flex-1 md:w-64">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                        <i class="fas fa-search text-xs"></i>
+                                    </span>
+                                    <input type="text" id="quote-search-input" oninput="filterQuotations()" placeholder="Search Project # / Vendor..." class="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-medium">
+                                </div>
+
+                                <button onclick="saveQuotationsToCloud(true)" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer" title="Save Quotations">
+                                    <i class="fas fa-save"></i> Save
+                                </button>
+                                <button onclick="exportToExcel('quotations', 'Quotation_Tracker')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer">
+                                    <i class="fas fa-file-excel"></i> Export
+                                </button>
+                                <button onclick="addRow('quotations-body', 'quotations')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer">
+                                    <i class="fas fa-plus"></i> Add Quotation
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
+                            <div class="overflow-x-auto custom-scrollbar">
+                                <table class="w-full text-left border-collapse table-quotations min-w-max">
+                                    <thead>
+                                        <tr>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Quote Ref #</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Project / Inquiry #</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Vendor / Supplier</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Submission Date</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Valid Until</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Total Amount (SAR)</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Status</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-slate-400">Supplier Document (PDF / Excel)</th>
+                                            <th class="p-3 font-semibold text-xs uppercase tracking-wider text-center no-print text-slate-400">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="quotations-body" class="text-slate-300 text-xs"></tbody>
+                                </table>
+                            </div>
+                            <div id="quotations-empty-state" class="p-12 text-center text-slate-500 flex flex-col items-center justify-center no-print">
+                                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-4 text-slate-600 border border-slate-700">
+                                    <i class="fas fa-file-invoice-dollar text-2xl"></i>
+                                </div>
+                                <p class="mb-4 text-sm">No quotations tracked yet.</p>
+                                <button onclick="addRow('quotations-body', 'quotations')" class="text-blue-400 hover:text-blue-300 font-medium underline text-sm cursor-pointer">Create first quotation entry</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Procurement Tab -->
+                    <div id="procurement" class="tab-content">
+                        <div class="flex justify-between items-center mb-6 no-print">
+                            <div>
+                                <h2 class="text-2xl font-semibold text-white">Procurement Tracker</h2>
+                                <p class="text-slate-400 text-sm mt-1">Purchase orders and delivery status</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="exportToExcel('procurement', 'Procurement_Tracker')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer">
+                                    <i class="fas fa-file-excel"></i> Export Excel
+                                </button>
+                                <button onclick="addRow('procurement-body', 'procurement')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer">
+                                    <i class="fas fa-plus"></i> Add PO
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
+                            <div class="overflow-x-auto custom-scrollbar">
+                                <table class="w-full text-left border-collapse table-procurement min-w-max">
+                                    <thead>
+                                        <tr>
+                                            <th class="p-4 font-semibold text-sm uppercase tracking-wider text-slate-400">PO Number</th>
+                                            <th class="p-4 font-semibold text-sm uppercase tracking-wider text-slate-400">Vendor/Supplier</th>
+                                            <th class="p-4 font-semibold text-sm uppercase tracking-wider text-slate-400">Item Description</th>
+                                            <th class="p-4 font-semibold text-sm uppercase tracking-wider text-slate-400">Order Date</th>
+                                            <th class="p-4 font-semibold text-sm uppercase tracking-wider text-slate-400">Expected Delivery</th>
+                                            <th class="p-4 font-semibold text-sm uppercase tracking-wider text-slate-400">Status</th>
+                                            <th class="p-4 font-semibold text-sm uppercase tracking-wider text-center no-print text-slate-400">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="procurement-body" class="text-slate-300 text-sm"></tbody>
+                                </table>
+                            </div>
+                            <div id="procurement-empty-state" class="p-12 text-center text-slate-500 flex flex-col items-center justify-center no-print">
+                                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-4 text-slate-600 border border-slate-700">
+                                    <i class="fas fa-shopping-basket text-2xl"></i>
+                                </div>
+                                <p class="mb-4 text-sm">No procurement items tracked yet.</p>
+                                <button onclick="addRow('procurement-body', 'procurement')" class="text-blue-400 hover:text-blue-300 font-medium underline text-sm cursor-pointer">Create first PO entry</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Materials Tab -->
+                    <div id="materials" class="tab-content active">
+                        <div class="pb-4 pt-1 mb-2 no-print border-b border-slate-800/60 -mx-2 px-2">
+                            <div class="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+                                <div class="flex items-center gap-2 overflow-x-auto">
+                                    <button onclick="switchTab('materials')" id="top-btn-materials" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-2 bg-blue-600 text-white shadow-sm cursor-pointer">
+                                        <i class="fas fa-boxes text-blue-200"></i> Material Weekly Report
+                                    </button>
+                                    <button onclick="switchTab('quotations')" id="top-btn-quotations" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 cursor-pointer">
+                                        <i class="fas fa-file-invoice-dollar text-slate-500"></i> Quotation Tracker
+                                    </button>
+                                    <button onclick="switchTab('procurement')" id="top-btn-procurement" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition flex items-center gap-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 cursor-pointer">
+                                        <i class="fas fa-shopping-basket text-slate-500"></i> Procurement Tracker
+                                    </button>
+                                </div>
+                                <div class="flex items-center gap-3 px-3 py-1.5 bg-slate-950/80 rounded-lg text-xs text-slate-400 border border-slate-800">
+                                    <span class="flex items-center gap-1.5 text-blue-400 font-medium">
+                                        <i class="fas fa-server text-xs"></i> Enterprise Cloud Sync
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="sticky top-0 z-30 bg-slate-950/95 backdrop-blur-md py-3 px-2 -mx-2 border-b border-slate-800/80 shadow-md mb-5 no-print">
+                            <div class="flex justify-end items-center gap-4">
+                                <div class="flex flex-wrap gap-2 items-center w-full justify-between sm:justify-end">
+                                    <label for="boq-upload-materials" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer border border-emerald-500 select-none" title="Upload BOQ Excel">
+                                        <i class="fas fa-upload"></i> <span class="hidden xl:inline">Upload BOQ</span>
+                                    </label>
+                                    <input type="file" id="boq-upload-materials" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleBOQUpload(event, 'materials')">
+                                    
+                                    <button onclick="addRow('materials-body', 'materials')" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer" title="Add Material Row">
+                                        <i class="fas fa-plus"></i> <span class="hidden xl:inline">Add Row</span>
+                                    </button>
+
+                                    <button onclick="saveCurrentProjectReport()" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer" title="Save Project">
+                                        <i class="fas fa-save"></i> <span class="hidden xl:inline">Save Project</span>
+                                    </button>
+                                    
+                                    <button onclick="deleteCurrentProjectReport()" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer" title="Delete Report">
+                                        <i class="fas fa-folder-minus"></i> <span class="hidden xl:inline">Delete Report</span>
+                                    </button>
+
+                                    <button onclick="exportToExcel('materials', 'Material_Weekly_Report')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer" title="Export Excel">
+                                        <i class="fas fa-file-excel"></i> <span class="hidden xl:inline">Export Excel</span>
+                                    </button>
+                                    
+                                    <button onclick="promptClearTable('materials')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer" title="Clear">
+                                        <i class="fas fa-trash-alt"></i> <span class="hidden xl:inline">Clear</span>
+                                    </button>
+
+                                    <button onclick="newReport('materials')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg shadow transition flex items-center gap-2 text-sm font-medium cursor-pointer" title="New Report">
+                                        <i class="fas fa-file-medical"></i> <span class="hidden xl:inline">New Report</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 rounded-xl p-5 mb-6 shadow-xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                                <i class="fas fa-building text-9xl text-white"></i>
+                            </div>
+
+                            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-4 pb-4 border-b border-slate-700/60">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
+                                        <i class="fas fa-folder-open text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-base font-semibold text-white">Project Context & Identification</h3>
+                                        <p class="text-xs text-slate-400">Select or enter Project Number/Name to instantly recall server-saved entries</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-2 w-full lg:w-auto">
+                                    <label class="text-xs text-slate-400 whitespace-nowrap font-medium flex items-center gap-1.5">
+                                        <i class="fas fa-history text-amber-400"></i> Recall Project:
+                                    </label>
+                                    <select id="mat-saved-projects-dropdown" onchange="recallProjectFromDropdown(this.value)" class="bg-slate-950 border border-slate-700 text-blue-300 text-xs rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 w-full lg:w-64 cursor-pointer font-medium">
+                                        <option value="">-- Choose Saved Project --</option>
+                                    </select>
+                                    <button onclick="deleteSelectedDropdownReport()" class="bg-rose-900/60 hover:bg-rose-700 text-rose-300 hover:text-white border border-rose-700/50 p-2.5 rounded-lg text-xs transition cursor-pointer" title="Delete report">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                        <i class="fas fa-hashtag text-blue-400"></i> Project Number <span class="text-red-400">*</span>
+                                    </label>
+                                    <input type="text" id="mat-proj-number" placeholder="e.g. PRJ-2026-001" oninput="onProjectNumberInput()" onchange="saveCurrentProjectReport(false)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-medium placeholder-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                        <i class="fas fa-building text-emerald-400"></i> Project Name
+                                    </label>
+                                    <input type="text" id="mat-proj-name" placeholder="e.g. Sinyar Tower Renovation" oninput="saveCurrentProjectReport(false)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-medium placeholder-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                        <i class="fas fa-user-shield text-purple-400"></i> Client Name
+                                    </label>
+                                    <input type="text" id="mat-proj-client" placeholder="e.g. Saudi Aramco" oninput="saveCurrentProjectReport(false)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-medium placeholder-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                        <i class="fas fa-calendar-week text-amber-400"></i> Report Week / Date
+                                    </label>
+                                    <input type="text" id="mat-proj-week" placeholder="e.g. Week 41 (Oct 2026)" oninput="saveCurrentProjectReport(false)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3.5 py-2 text-sm text-white focus:outline-none focus:border-blue-500 font-medium placeholder-slate-600">
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-3">
+                                <div class="flex items-center gap-4">
+                                    <span class="flex items-center gap-1.5 font-medium text-slate-300">
+                                        <i class="fas fa-boxes text-blue-400"></i> Total Items: <strong id="summary-total-items" class="text-white">0</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 font-medium text-slate-300">
+                                        <i class="fas fa-file-signature text-emerald-400"></i> PO Issued: <strong id="summary-po-issued" class="text-white">0</strong>
+                                    </span>
+                                    <span class="flex items-center gap-1.5 font-medium text-slate-300">
+                                        <i class="fas fa-coins text-amber-400"></i> Total Cost: <strong id="summary-total-cost" class="text-white">SAR 0.00</strong>
+                                    </span>
+                                </div>
+                                <div class="text-slate-500 italic text-[11px] flex items-center gap-1">
+                                    <i class="fas fa-shield-alt text-emerald-400"></i> Secured Server Synchronized
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
+                            <div id="materials-top-scrollbar" class="overflow-x-auto overflow-y-hidden custom-scrollbar bg-slate-900/90 border-b border-slate-700/80 no-print" style="height: 12px;">
+                                <div id="materials-top-scrollbar-dummy" style="height: 1px;"></div>
+                            </div>
+
+                            <div id="materials-table-container" class="overflow-x-auto overflow-y-auto max-h-[650px] custom-scrollbar">
+                                <table class="w-full text-left border-collapse table-materials table-fixed">
+                                    <thead>
+                                        <tr>
+                                            <th class="w-[5%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">S.NO</th>
+                                            <th class="w-[28%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">BOQ Item / Description</th>
+                                            <th class="w-[8%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">QUOTATION<br>RECEIVED</th>
+                                            <th class="w-[6%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">PO STATUS<br>(Y/N)</th>
+                                            <th class="w-[7%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">Advance Payment<br>(Y/N)</th>
+                                            <th class="w-[8%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">Sample Sub Date</th>
+                                            <th class="w-[8%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">Client App</th>
+                                            <th class="w-[8%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">Delivery ETA</th>
+                                            <th class="w-[11%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">Remarks</th>
+                                            <th class="w-[7%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-slate-400">COST</th>
+                                            <th class="w-[4%] px-2 py-2.5 font-semibold text-xs uppercase tracking-tight text-center no-print text-slate-400">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="materials-body" class="text-slate-300 text-xs"></tbody>
+                                </table>
+                            </div>
+                            <div id="materials-empty-state" class="p-12 text-center text-slate-500 flex flex-col items-center justify-center no-print">
+                                <div class="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center mb-4 text-slate-600 border border-slate-700">
+                                    <i class="fas fa-layer-group text-2xl"></i>
+                                </div>
+                                <p class="mb-4 text-sm">Material report is empty for this project.</p>
+                                <button onclick="addRow('materials-body', 'materials')" class="text-blue-400 hover:text-blue-300 font-medium underline text-sm cursor-pointer">Add initial material entry</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Document Viewer Modal -->
+    <div id="doc-viewer-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl overflow-hidden transform scale-95 transition-transform duration-300" id="doc-viewer-box">
+            <div class="px-6 py-4 bg-slate-800/90 border-b border-slate-700 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-blue-600/20 text-blue-400 rounded-lg">
+                        <i class="fas fa-file-alt text-lg" id="doc-modal-icon"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-white" id="doc-modal-title">Quotation Document Preview</h3>
+                        <p class="text-xs text-slate-400" id="doc-modal-subtitle">Supplier Quotation File</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a id="doc-modal-download" href="#" download class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                        <i class="fas fa-download"></i> Download
+                    </a>
+                    <button onclick="closeDocModal()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition cursor-pointer">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 bg-slate-950 p-4 overflow-auto flex items-center justify-center" id="doc-modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 no-print">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300" id="confirm-modal-box">
+            <div class="flex items-center gap-4 text-amber-400 mb-4">
+                <div class="p-3 bg-amber-500/10 rounded-full border border-amber-500/20">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white">Confirm Action</h3>
+            </div>
+            <p id="confirm-modal-msg" class="text-slate-300 text-sm mb-6 leading-relaxed">Are you sure you want to proceed?</p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-modal-cancel" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-sm font-medium transition cursor-pointer">Cancel</button>
+                <button id="confirm-modal-proceed" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition cursor-pointer">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-3 no-print pointer-events-none"></div>
+
+    <script src="api.js"></script>
+    <script>
+        let currentUser = null;
+        let syncTimer = null;
+        let projectSaveQueue = Promise.resolve();
+        const appState = { users: [], projects: {}, quotations: [], procurement: [] };
+        const api = window.sinyarApi.request;
+        const json = body => ({ headers: { 'Content-Type': 'application/json' }, ...window.sinyarApi.json(body) });
+
+        window.handleLogin = async function(event) {
+            event.preventDefault();
+            const userIdInput = document.getElementById('login-userid').value.trim();
+            const passInput = document.getElementById('login-password').value.trim();
+            
+            try {
+                const result = await api('/auth/login', { method: 'POST', ...json({ userId: userIdInput, password: passInput }) });
+                currentUser = result.user;
+                const role = currentUser.role || 'user';
+
+                    document.getElementById('user-badge').textContent = `User: ${userIdInput} (${role.toUpperCase()})`;
+                    
+                    const adminBtn = document.getElementById('btn-admin');
+                    if (role === 'admin') {
+                        adminBtn.classList.remove('hidden');
+                        loadUsersTable();
+                    } else {
+                        adminBtn.classList.add('hidden');
+                    }
+
+                    document.getElementById('auth-screen').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    
+                    showToast(`Welcome back, ${userIdInput}!`, "success");
+                await initCloudSync();
+                return;
+            } catch (error) {
+                console.error('Login error:', error);
+            }
+
+            showToast("Invalid User ID or Password. Please try again.", "error");
+        };
+
+        window.handleLogout = async function() {
+            await api('/auth/logout', { method: 'POST' }).catch(() => {});
+            if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+            currentUser = null;
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('login-userid').value = '';
+            document.getElementById('login-password').value = '';
+            showToast("Signed out successfully.", "info");
+        };
+
+        window.handleCreateUser = async function(event) {
+            event.preventDefault();
+            if (!currentUser || currentUser.role !== 'admin') {
+                showToast("Only administrator SALEEM can create user accounts.", "error");
+                return;
+            }
+
+            const newId = document.getElementById('new-user-id').value.trim();
+            const newPass = document.getElementById('new-user-pass').value.trim();
+
+            if (!newId || !newPass) return;
+
+            try {
+                await api('/users', { method: 'POST', ...json({ userId: newId, password: newPass }) });
+                document.getElementById('new-user-id').value = '';
+                document.getElementById('new-user-pass').value = '';
+                await loadUsersTable();
+                showToast(`User account "${newId}" created successfully!`, "success");
+            } catch (error) { showToast(error.message, "error"); }
+        };
+
+        window.deleteUserAccount = async function(userId) {
+            if (!currentUser || currentUser.role !== 'admin') {
+                showToast("Permission denied: Only administrator SALEEM can delete user accounts.", "error");
+                return;
+            }
+
+            if (userId === 'SALEEM') {
+                showToast("Cannot delete administrator account.", "error");
+                return;
+            }
+
+            showConfirmModal(`Permanently delete user account "${userId}"?`, async () => {
+                await api(`/users/${encodeURIComponent(userId)}`, { method: 'DELETE' });
+                await loadUsersTable();
+                showToast(`Deleted user account: ${userId}`, "success");
+            });
+        };
+
+        async function loadUsersTable() {
+            const tbody = document.getElementById('users-body');
+            if (!tbody) return;
+            const result = await api('/users');
+            appState.users = result.users;
+            tbody.innerHTML = '';
+
+            appState.users.forEach(u => {
+                const uid = u.uid;
+                const isAdmin = (currentUser && currentUser.role === 'admin');
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-700/50 transition-colors";
+                tr.innerHTML = `
+                    <td class="p-3 border-b border-slate-700 font-medium text-white flex items-center gap-2">
+                        <i class="fas fa-user-circle text-blue-400"></i> ${uid}
+                    </td>
+                    <td class="p-3 border-b border-slate-700">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${u.role === 'admin' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}">
+                            ${u.role.toUpperCase()}
+                        </span>
+                    </td>
+                    <td class="p-3 border-b border-slate-700 text-slate-400">${u.createdAt ? u.createdAt.split('T')[0] : 'N/A'}</td>
+                    <td class="p-3 border-b border-slate-700 text-center no-print">
+                        ${uid !== 'SALEEM' && isAdmin ? `<button onclick="deleteUserAccount('${uid}')" class="text-slate-500 hover:text-red-400 transition p-2 rounded-full hover:bg-slate-700 cursor-pointer" title="Delete User"><i class="fas fa-trash-alt text-xs"></i></button>` : '<span class="text-slate-600 text-xs italic">Protected</span>'}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function initCloudSync() {
+            const [projects, quotations, procurement] = await Promise.all([api('/projects'), api('/quotations'), api('/procurement')]);
+            appState.projects = Object.fromEntries(projects.projects.map(project => [project.number, project]));
+            appState.quotations = quotations.quotations;
+            appState.procurement = procurement.procurement;
+            updateSavedProjectsDropdown();
+            loadQuotationsFromMemory();
+            loadProcurementFromMemory();
+            if (currentUser.role === 'admin') await loadUsersTable();
+            if (!syncTimer) {
+                syncTimer = setInterval(() => {
+                    const activeElement = document.activeElement;
+                    if (currentUser && !['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement?.tagName)) initCloudSync().catch(() => {});
+                }, 5000);
+            }
+        }
+
+        window.saveCurrentProjectReport = async function(notify = true) {
+            const projNum = document.getElementById('mat-proj-number').value.trim();
+            if (!projNum) {
+                if (notify) showToast("Please enter a Project Number to save this report.", "error");
+                return;
+            }
+
+            const projName = document.getElementById('mat-proj-name').value.trim();
+            const clientName = document.getElementById('mat-proj-client').value.trim();
+            const weekStr = document.getElementById('mat-proj-week').value.trim();
+
+            const tbody = document.getElementById('materials-body');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const items = rows.map(tr => ({
+                sno: tr.querySelector('.mat-input-sno')?.value || '',
+                desc: tr.querySelector('.mat-input-desc')?.value || '',
+                quote: tr.querySelector('.mat-input-quote')?.value || '',
+                po: tr.querySelector('.mat-input-po')?.value || '',
+                adv: tr.querySelector('.mat-input-adv')?.value || '',
+                sample: tr.querySelector('.mat-input-sample')?.value || '',
+                clientApp: tr.querySelector('.mat-input-clientapp')?.value || '',
+                eta: tr.querySelector('.mat-input-eta')?.value || '',
+                remarks: tr.querySelector('.mat-input-remarks')?.value || '',
+                cost: tr.querySelector('.mat-input-cost')?.value || ''
+            }));
+
+            const projectData = { number: projNum, name: projName, client: clientName, week: weekStr, updatedAt: new Date().toISOString(), items: items };
+
+            projectSaveQueue = projectSaveQueue.then(async () => {
+                const payload = { ...projectData, version: appState.projects[projNum]?.version };
+                const result = await api(`/projects/${encodeURIComponent(projNum)}`, { method: 'PUT', ...json(payload) });
+                appState.projects[projNum] = result.project;
+                updateSavedProjectsDropdown();
+            }).catch(error => showToast(error.message, 'error'));
+            await projectSaveQueue;
+
+            if (notify) showToast(`Report saved & synced to server for Project: ${projNum}`, "success");
+        };
+
+        window.saveQuotationsToCloud = async function(notify = false) {
+            const tbody = document.getElementById('quotations-body');
+            if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const quotes = rows.map(tr => ({
+                ref: tr.querySelector('.quote-input-ref')?.value || '',
+                project: tr.querySelector('.quote-input-project')?.value || '',
+                vendor: tr.querySelector('.quote-input-vendor')?.value || '',
+                date: tr.querySelector('.quote-input-date')?.value || '',
+                valid: tr.querySelector('.quote-input-valid')?.value || '',
+                amount: tr.querySelector('.quote-input-amount')?.value || '',
+                status: tr.querySelector('.quote-input-status')?.value || 'Pending',
+                fileKey: tr.dataset.fileKey || '',
+                fileName: tr.dataset.fileName || '',
+                fileType: tr.dataset.fileType || ''
+            }));
+
+            appState.quotations = quotes;
+            await api('/quotations', { method: 'PUT', ...json({ quotations: quotes }) });
+
+            if (notify) showToast("Quotation records saved and synced to server.", "success");
+        };
+
+        function loadQuotationsFromMemory() {
+            try {
+                const quotes = appState.quotations;
+                const tbody = document.getElementById('quotations-body');
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    if (quotes.length > 0) {
+                        const emptyState = document.getElementById('quotations-empty-state');
+                        if (emptyState) emptyState.style.display = 'none';
+                        quotes.forEach(q => addRow('quotations-body', 'quotations', q));
+                    }
+                }
+            } catch (e) {
+                console.error("Error loading quotations", e);
+            }
+        }
+
+        window.deleteCurrentProjectReport = async function() {
+            const projNum = document.getElementById('mat-proj-number').value.trim();
+            if (!projNum) {
+                showToast("No active Project Number specified.", "error");
+                return;
+            }
+            const projectsMap = appState.projects;
+            if (!projectsMap[projNum]) {
+                showToast(`No report found for Project: ${projNum}`, "error");
+                return;
+            }
+
+            showConfirmModal(`Permanently delete saved report for Project "${projNum}" from server?`, async () => {
+                delete projectsMap[projNum];
+                await api(`/projects/${encodeURIComponent(projNum)}`, { method: 'DELETE' });
+
+                document.getElementById('mat-proj-number').value = '';
+                document.getElementById('mat-proj-name').value = '';
+                document.getElementById('mat-proj-client').value = '';
+                document.getElementById('mat-proj-week').value = '';
+                document.getElementById('materials-body').innerHTML = '';
+                document.getElementById('materials-empty-state').style.display = 'flex';
+
+                updateMaterialSummary();
+                updateSavedProjectsDropdown();
+                showToast(`Deleted report for Project: ${projNum}`, "success");
+            });
+        };
+
+        window.getStoredProjectsMap = function() { return appState.projects; };
+
+        window.updateSavedProjectsDropdown = function() {
+            const dropdown = document.getElementById('mat-saved-projects-dropdown');
+            if (!dropdown) return;
+            const projectsMap = getStoredProjectsMap();
+            dropdown.innerHTML = '<option value="">-- Choose Saved Project --</option>';
+            Object.keys(projectsMap).sort().forEach(projNum => {
+                const proj = projectsMap[projNum];
+                const option = document.createElement('option');
+                option.value = `REPORT::${projNum}`;
+                const namePart = proj.name ? ` - ${proj.name}` : '';
+                const weekPart = proj.week ? ` (${proj.week})` : '';
+                option.textContent = `${projNum}${namePart}${weekPart}`;
+                dropdown.appendChild(option);
+            });
+        };
+
+        window.recallProjectFromDropdown = function(value) {
+            if (!value || !value.startsWith('REPORT::')) return;
+            const projNum = value.replace('REPORT::', '');
+            const projectsMap = getStoredProjectsMap();
+            const projData = projectsMap[projNum];
+            if (!projData) return;
+
+            document.getElementById('mat-proj-number').value = projData.number || projNum;
+            document.getElementById('mat-proj-name').value = projData.name || '';
+            document.getElementById('mat-proj-client').value = projData.client || '';
+            document.getElementById('mat-proj-week').value = projData.week || '';
+
+            const tbody = document.getElementById('materials-body');
+            tbody.innerHTML = '';
+            const emptyState = document.getElementById('materials-empty-state');
+            if (emptyState) emptyState.style.display = 'none';
+
+            if (projData.items && projData.items.length > 0) {
+                projData.items.forEach(item => addRow('materials-body', 'materials', item));
+            } else {
+                if (emptyState) emptyState.style.display = 'flex';
+            }
+
+            updateMaterialSummary();
+            showToast(`Loaded Project Report: ${projNum}`, "info");
+        };
+
+        window.onProjectNumberInput = function() {
+            const projNum = document.getElementById('mat-proj-number').value.trim();
+            if (!projNum) return;
+            const projectsMap = getStoredProjectsMap();
+            if (projectsMap[projNum]) {
+                recallProjectFromDropdown(`REPORT::${projNum}`);
+            }
+        };
+
+        window.filterQuotations = function() {
+            const query = document.getElementById('quote-search-input').value.toLowerCase().trim();
+            const tbody = document.getElementById('quotations-body');
+            if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            let visibleCount = 0;
+            rows.forEach(tr => {
+                const projNum = (tr.querySelector('.quote-input-project')?.value || '').toLowerCase();
+                const vendorName = (tr.querySelector('.quote-input-vendor')?.value || '').toLowerCase();
+                const quoteRef = (tr.querySelector('.quote-input-ref')?.value || '').toLowerCase();
+
+                if (!query || projNum.includes(query) || vendorName.includes(query) || quoteRef.includes(query)) {
+                    tr.style.display = '';
+                    visibleCount++;
+                } else {
+                    tr.style.display = 'none';
+                }
+            });
+            const emptyState = document.getElementById('quotations-empty-state');
+            if (emptyState) {
+                emptyState.style.display = (visibleCount === 0 && rows.length > 0) ? 'flex' : 'none';
+            }
+        };
+
+        window.handleQuotationFileUpload = function(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const tr = input.closest('tr');
+            if (!tr) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            api('/files', { method: 'POST', body: formData }).then(result => {
+                tr.dataset.fileKey = result.fileKey;
+                tr.dataset.fileName = result.fileName;
+                tr.dataset.fileType = result.fileType;
+                updateQuotationFileBadge(tr, file.name);
+                saveQuotationsToCloud();
+                showToast(`Attached ${file.name} to quotation.`, "success");
+            }).catch(error => showToast(error.message, 'error'));
+        };
+
+        window.updateQuotationFileBadge = function(tr, filename) {
+            const container = tr.querySelector('.quote-file-display');
+            if (!container) return;
+            const isPdf = filename.toLowerCase().endsWith('.pdf');
+            const iconClass = isPdf ? 'fa-file-pdf text-red-400' : 'fa-file-excel text-emerald-400';
+
+            container.innerHTML = `
+                <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 w-full">
+                    <i class="fas ${iconClass} text-sm"></i>
+                    <span class="text-xs text-slate-200 truncate flex-1 font-medium" title="${filename}">${filename}</span>
+                    <button onclick="previewQuotationFile(this)" type="button" class="text-blue-400 hover:text-blue-300 px-1.5 py-0.5 rounded hover:bg-slate-800 transition cursor-pointer" title="Preview">
+                        <i class="fas fa-eye text-xs"></i> View
+                    </button>
+                    <button onclick="removeQuotationFile(this)" type="button" class="text-slate-500 hover:text-red-400 px-1.5 py-0.5 rounded hover:bg-slate-800 transition cursor-pointer" title="Remove">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+            `;
+        };
+
+        window.previewQuotationFile = function(btn) {
+            const tr = btn.closest('tr');
+            if (!tr || !tr.dataset.fileKey) {
+                showToast("No quotation document attached.", "error");
+                return;
+            }
+            const fileData = `/api/files/${encodeURIComponent(tr.dataset.fileKey)}`;
+            const fileName = tr.dataset.fileName || 'Quotation_Document';
+            const fileType = tr.dataset.fileType || '';
+
+            const modal = document.getElementById('doc-viewer-modal');
+            const modalBox = document.getElementById('doc-viewer-box');
+            const modalTitle = document.getElementById('doc-modal-title');
+            const modalSubtitle = document.getElementById('doc-modal-subtitle');
+            const modalBody = document.getElementById('doc-modal-body');
+            const downloadBtn = document.getElementById('doc-modal-download');
+            const modalIcon = document.getElementById('doc-modal-icon');
+
+            modalTitle.textContent = fileName;
+            modalSubtitle.textContent = `Supplier Quotation Record (${fileType.includes('pdf') ? 'PDF Document' : 'Excel Spreadsheet'})`;
+            downloadBtn.href = fileData;
+            downloadBtn.download = fileName;
+
+            if (fileType.includes('pdf')) {
+                modalIcon.className = 'fas fa-file-pdf text-red-400 text-lg';
+                modalBody.innerHTML = `<iframe src="${fileData}" class="w-full h-full rounded-lg border border-slate-700 bg-white"></iframe>`;
+            } else {
+                modalIcon.className = 'fas fa-file-excel text-emerald-400 text-lg';
+                modalBody.innerHTML = `
+                    <div class="text-center p-8 bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full">
+                        <div class="w-16 h-16 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-file-excel text-2xl"></i>
+                        </div>
+                        <h4 class="text-white font-semibold text-sm mb-2">${fileName}</h4>
+                        <p class="text-slate-400 text-xs mb-6">Spreadsheet quotation file is attached and ready for review or export.</p>
+                        <a href="${fileData}" download="${fileName}" class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition">
+                            <i class="fas fa-download"></i> Download File
+                        </a>
+                    </div>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                modalBox.classList.remove('scale-95');
+                modalBox.classList.add('scale-100');
+            });
+        };
+
+        window.closeDocModal = function() {
+            const modal = document.getElementById('doc-viewer-modal');
+            const modalBox = document.getElementById('doc-viewer-box');
+            modal.classList.add('opacity-0');
+            modalBox.classList.remove('scale-100');
+            modalBox.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.getElementById('doc-modal-body').innerHTML = '';
+            }, 300);
+        };
+
+        window.removeQuotationFile = function(btn) {
+            const tr = btn.closest('tr');
+            if (!tr) return;
+            delete tr.dataset.fileKey;
+            delete tr.dataset.fileName;
+            delete tr.dataset.fileType;
+
+            const container = tr.querySelector('.quote-file-display');
+            const fileInputId = 'file_input_' + Math.random().toString(36).substr(2, 9);
+            container.innerHTML = `
+                <label for="${fileInputId}" class="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 hover:border-blue-500 text-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium transition cursor-pointer w-full">
+                    <i class="fas fa-cloud-upload-alt text-blue-400"></i> Upload PDF / Excel
+                </label>
+                <input type="file" id="${fileInputId}" class="hidden" accept=".pdf, .xlsx, .xls" onchange="handleQuotationFileUpload(this)">
+            `;
+            saveQuotationsToCloud();
+            showToast("Quotation document removed.", "info");
+        };
+
+        window.deleteRow = function(btn, type) {
+            const tr = btn.closest('tr');
+            if (!tr) return;
+            const tbody = tr.parentElement;
+            tr.remove();
+
+            if (tbody.children.length === 0) {
+                const emptyState = document.getElementById(`${type}-empty-state`);
+                if (emptyState) emptyState.style.display = 'flex';
+            }
+
+            if (type === 'materials') {
+                updateMaterialSummary();
+                saveCurrentProjectReport(false);
+            } else if (type === 'quotations') {
+                saveQuotationsToCloud();
+            } else if (type === 'procurement') {
+                saveProcurementToCloud();
+            }
+        };
+
+        window.saveProcurementToCloud = async function() {
+            const tbody = document.getElementById('procurement-body');
+            if (!tbody || !currentUser) return;
+            const procurement = Array.from(tbody.querySelectorAll('tr')).map(tr => {
+                const fields = Array.from(tr.querySelectorAll('input, select'));
+                return { po: fields[0]?.value || '', supplier: fields[1]?.value || '', description: fields[2]?.value || '', orderDate: fields[3]?.value || '', deliveryDate: fields[4]?.value || '', status: fields[5]?.value || 'Draft' };
+            });
+            appState.procurement = procurement;
+            await api('/procurement', { method: 'PUT', ...json({ procurement }) });
+        };
+
+        function loadProcurementFromMemory() {
+            const tbody = document.getElementById('procurement-body');
+            if (!tbody || !appState.procurement.length) return;
+            tbody.innerHTML = '';
+            appState.procurement.forEach(item => addRow('procurement-body', 'procurement', item));
+        }
+
+        window.updateMaterialSummary = function() {
+            const tbody = document.getElementById('materials-body');
+            if (!tbody) return;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const totalItems = rows.length;
+            let poIssued = 0;
+            let totalCost = 0;
+
+            rows.forEach(tr => {
+                const poVal = tr.querySelector('.mat-input-po')?.value;
+                if (poVal === 'Y' || poVal === 'y') poIssued++;
+                const costVal = tr.querySelector('.mat-input-cost')?.value || '0';
+                totalCost += parseFloat(costVal.replace(/[^0-9.-]+/g, '')) || 0;
+            });
+
+            document.getElementById('summary-total-items').textContent = totalItems;
+            document.getElementById('summary-po-issued').textContent = poIssued;
+            document.getElementById('summary-total-cost').textContent = `SAR ${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        };
+
+        window.handleBOQUpload = function(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                    if (jsonData.length <= 1) {
+                        showToast("The uploaded Excel file appears to be empty.", "error");
+                        return;
+                    }
+
+                    const tbody = document.getElementById(`${type}-body`);
+                    tbody.innerHTML = '';
+                    document.getElementById(`${type}-empty-state`).style.display = 'none';
+
+                    let startRow = 0;
+                    if (typeof jsonData[0][0] === 'string' && (jsonData[0][0].toLowerCase().includes('s') || jsonData[0][0].toLowerCase().includes('item'))) {
+                        startRow = 1;
+                    }
+
+                    let addedCount = 0;
+                    for (let i = startRow; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        if (!row || row.length === 0) continue;
+                        const itemData = {
+                            sno: row[0] != null ? String(row[0]) : (addedCount + 1).toString(),
+                            desc: row[1] != null ? String(row[1]) : '',
+                            quote: row[2] != null ? String(row[2]) : '',
+                            po: row[3] != null ? String(row[3]) : '',
+                            adv: row[4] != null ? String(row[4]) : '',
+                            sample: row[5] != null ? String(row[5]) : '',
+                            clientApp: row[6] != null ? String(row[6]) : '',
+                            eta: row[7] != null ? String(row[7]) : '',
+                            remarks: row[8] != null ? String(row[8]) : '',
+                            cost: row[9] != null ? String(row[9]) : ''
+                        };
+                        addRow(`${type}-body`, type, itemData);
+                        addedCount++;
+                    }
+
+                    if (type === 'materials') {
+                        updateMaterialSummary();
+                        saveCurrentProjectReport(false);
+                    }
+                    showToast(`Imported ${addedCount} items successfully.`, "success");
+                    event.target.value = '';
+                } catch (err) {
+                    showToast("Failed to parse Excel file.", "error");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+
+        window.showToast = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            let icon = '<i class="fas fa-info-circle text-blue-400"></i>';
+            let borderClass = 'border-slate-700';
+            if (type === 'success') {
+                icon = '<i class="fas fa-check-circle text-emerald-400"></i>';
+                borderClass = 'border-emerald-700/50';
+            } else if (type === 'error') {
+                icon = '<i class="fas fa-exclamation-circle text-red-400"></i>';
+                borderClass = 'border-red-700/50';
+            }
+            toast.className = `flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl ${borderClass} bg-slate-800 text-sm font-medium text-slate-200 transform transition-all duration-300 translate-y-10 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `${icon} <span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-y-10', 'opacity-0'));
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+
+        window.toggleFullScreen = function() {
+            try {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
+            } catch(e){}
+        };
+
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('aside nav button').forEach(btn => {
+                btn.className = 'sidebar-btn w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent cursor-pointer';
+                const iconDiv = btn.querySelector('div');
+                if(iconDiv) iconDiv.className = 'p-2 bg-slate-800 rounded-md text-slate-500';
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if (activeBtn) {
+                activeBtn.className = 'sidebar-btn active-tab w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 font-medium bg-slate-800 text-blue-400 shadow-sm border border-slate-700/80 cursor-pointer';
+                const iconContainer = activeBtn.querySelector('div');
+                if (iconContainer) iconContainer.className = 'p-2 bg-slate-900 rounded-md text-blue-500';
+            }
+        };
+
+        const uniqueIdGen = () => Math.random().toString(36).substr(2, 9);
+        const rowTemplates = {
+            quotations: () => {
+                const fileInputId = 'file_input_' + uniqueIdGen();
+                return `
+                    <td class="p-3 border-b border-slate-700 align-top"><input type="text" placeholder="QT-2026-..." oninput="saveQuotationsToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-xs font-medium text-slate-200 placeholder-slate-500 quote-input-ref"></td>
+                    <td class="p-3 border-b border-slate-700 align-top"><input type="text" placeholder="PRJ-2026-..." oninput="saveQuotationsToCloud(); filterQuotations();" class="w-full bg-transparent border-none focus:ring-0 text-xs font-medium text-blue-300 placeholder-slate-500 quote-input-project"></td>
+                    <td class="p-3 border-b border-slate-700 align-top"><input type="text" placeholder="Vendor Name" oninput="saveQuotationsToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-200 placeholder-slate-500 quote-input-vendor"></td>
+                    <td class="p-3 border-b border-slate-700 align-top"><input type="date" onchange="saveQuotationsToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-400 cursor-pointer quote-input-date" style="color-scheme: dark;"></td>
+                    <td class="p-3 border-b border-slate-700 align-top"><input type="date" onchange="saveQuotationsToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-400 cursor-pointer quote-input-valid" style="color-scheme: dark;"></td>
+                    <td class="p-3 border-b border-slate-700 align-top"><input type="text" placeholder="0.00" oninput="saveQuotationsToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-200 placeholder-slate-500 quote-input-amount"></td>
+                    <td class="p-3 border-b border-slate-700 align-top">
+                        <select onchange="saveQuotationsToCloud()" class="bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded-lg block w-full p-1.5 cursor-pointer quote-input-status">
+                            <option>Pending</option><option>Approved</option><option>Rejected</option><option>Revised</option>
+                        </select>
+                    </td>
+                    <td class="p-3 border-b border-slate-700 align-top">
+                        <div class="quote-file-display">
+                            <label for="${fileInputId}" class="flex items-center justify-center gap-1.5 bg-slate-900 hover:bg-slate-700/80 border border-slate-700 hover:border-blue-500 text-slate-300 rounded-lg px-3 py-1.5 text-xs font-medium transition cursor-pointer w-full">
+                                <i class="fas fa-cloud-upload-alt text-blue-400"></i> Upload PDF / Excel
+                            </label>
+                            <input type="file" id="${fileInputId}" class="hidden" accept=".pdf, .xlsx, .xls" onchange="handleQuotationFileUpload(this)">
+                        </div>
+                    </td>
+                    <td class="p-3 border-b border-slate-700 text-center no-print align-top">
+                        <button onclick="deleteRow(this, 'quotations')" class="text-slate-500 hover:text-red-400 transition p-2 rounded-full hover:bg-slate-700 cursor-pointer" title="Remove">
+                            <i class="fas fa-trash-alt text-xs"></i>
+                        </button>
+                    </td>
+                `;
+            },
+            procurement: () => `
+                <td class="p-3 border-b border-slate-700"><input type="text" placeholder="PO-..." oninput="saveProcurementToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-sm font-medium text-slate-200 placeholder-slate-500"></td>
+                <td class="p-3 border-b border-slate-700"><input type="text" placeholder="Supplier Name" oninput="saveProcurementToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-sm text-slate-200 placeholder-slate-500"></td>
+                <td class="p-3 border-b border-slate-700"><input type="text" placeholder="Description" oninput="saveProcurementToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-sm text-slate-200 placeholder-slate-500"></td>
+                <td class="p-3 border-b border-slate-700"><input type="date" onchange="saveProcurementToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-sm text-slate-400 cursor-pointer" style="color-scheme: dark;"></td>
+                <td class="p-3 border-b border-slate-700"><input type="date" onchange="saveProcurementToCloud()" class="w-full bg-transparent border-none focus:ring-0 text-sm text-slate-400 cursor-pointer" style="color-scheme: dark;"></td>
+                <td class="p-3 border-b border-slate-700">
+                    <select onchange="saveProcurementToCloud()" class="bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded-lg block w-full p-2 cursor-pointer">
+                        <option>Draft</option><option>Ordered</option><option>In Transit</option><option>Delivered</option>
+                    </select>
+                </td>
+                <td class="p-3 border-b border-slate-700 text-center no-print">
+                    <button onclick="deleteRow(this, 'procurement')" class="text-slate-500 hover:text-red-400 transition p-2 rounded-full hover:bg-slate-700 cursor-pointer" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                </td>
+            `,
+            materials: () => `
+                <td class="p-1.5 border-b border-slate-700 align-top"><input type="text" placeholder="1" class="w-full bg-transparent border-none focus:ring-0 text-xs font-medium text-slate-200 mat-input-sno px-0 text-center" oninput="updateMaterialSummary()"></td>
+                <td class="p-1.5 border-b border-slate-700 align-top"><textarea placeholder="Description" rows="1" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-200 resize-none overflow-hidden leading-normal mat-input-desc px-0" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'; updateMaterialSummary()"></textarea></td>
+                <td class="p-1.5 border-b border-slate-700 align-top"><input type="text" placeholder="Status" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-200 mat-input-quote px-0"></td>
+                <td class="p-1.5 border-b border-slate-700 align-top">
+                    <select onchange="updateMaterialSummary()" class="bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded px-1 py-1 block w-full cursor-pointer mat-input-po">
+                        <option value="">-</option><option value="Y">Y</option><option value="N">N</option>
+                    </select>
+                </td>
+                <td class="p-1.5 border-b border-slate-700 align-top">
+                    <select class="bg-slate-900 border border-slate-600 text-slate-200 text-xs rounded px-1 py-1 block w-full cursor-pointer mat-input-adv">
+                        <option value="">-</option><option value="Y">Y</option><option value="N">N</option>
+                    </select>
+                </td>
+                <td class="p-1.5 border-b border-slate-700 align-top"><input type="date" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-400 cursor-pointer mat-input-sample px-0" style="color-scheme: dark;"></td>
+                <td class="p-1.5 border-b border-slate-700 align-top"><input type="text" placeholder="Status" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-200 mat-input-clientapp px-0"></td>
+                <td class="p-1.5 border-b border-slate-700 align-top"><input type="date" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-400 cursor-pointer mat-input-eta px-0" style="color-scheme: dark;"></td>
+                <td class="p-1.5 border-b border-slate-700 align-top"><input type="text" placeholder="Remarks" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-200 mat-input-remarks px-0"></td>
+                <td class="p-1.5 border-b border-slate-700 align-top"><input type="text" placeholder="0.00" oninput="updateMaterialSummary()" class="w-full bg-transparent border-none focus:ring-0 text-xs text-slate-200 mat-input-cost px-0 text-right"></td>
+                <td class="p-1.5 border-b border-slate-700 text-center no-print align-top">
+                    <button onclick="deleteRow(this, 'materials')" class="text-slate-500 hover:text-red-400 transition p-1 rounded-full hover:bg-slate-700 cursor-pointer" title="Remove"><i class="fas fa-trash-alt text-xs"></i></button>
+                </td>
+            `
+        };
+
+        window.addRow = function(tableBodyId, type, data = null) {
+            const tbody = document.getElementById(tableBodyId);
+            const tr = document.createElement('tr');
+            tr.innerHTML = rowTemplates[type]();
+            tr.className = "hover:bg-slate-700/50 transition-colors";
+            tbody.appendChild(tr);
+
+            const emptyState = document.getElementById(`${type}-empty-state`);
+            if (emptyState) emptyState.style.display = 'none';
+
+            if (data && type === 'quotations') {
+                const inputs = {
+                    ref: tr.querySelector('.quote-input-ref'),
+                    project: tr.querySelector('.quote-input-project'),
+                    vendor: tr.querySelector('.quote-input-vendor'),
+                    date: tr.querySelector('.quote-input-date'),
+                    valid: tr.querySelector('.quote-input-valid'),
+                    amount: tr.querySelector('.quote-input-amount'),
+                    status: tr.querySelector('.quote-input-status')
+                };
+                if (inputs.ref) inputs.ref.value = data.ref || '';
+                if (inputs.project) inputs.project.value = data.project || '';
+                if (inputs.vendor) inputs.vendor.value = data.vendor || '';
+                if (inputs.date) inputs.date.value = data.date || '';
+                if (inputs.valid) inputs.valid.value = data.valid || '';
+                if (inputs.amount) inputs.amount.value = data.amount || '';
+                if (inputs.status) inputs.status.value = data.status || 'Pending';
+
+                    if (data.fileKey && data.fileName) {
+                        tr.dataset.fileKey = data.fileKey;
+                    tr.dataset.fileName = data.fileName;
+                    tr.dataset.fileType = data.fileType || '';
+                    updateQuotationFileBadge(tr, data.fileName);
+                }
+            }
+
+            if (data && type === 'materials') {
+                const inputs = {
+                    sno: tr.querySelector('.mat-input-sno'),
+                    desc: tr.querySelector('.mat-input-desc'),
+                    quote: tr.querySelector('.mat-input-quote'),
+                    po: tr.querySelector('.mat-input-po'),
+                    adv: tr.querySelector('.mat-input-adv'),
+                    sample: tr.querySelector('.mat-input-sample'),
+                    clientApp: tr.querySelector('.mat-input-clientapp'),
+                    eta: tr.querySelector('.mat-input-eta'),
+                    remarks: tr.querySelector('.mat-input-remarks'),
+                    cost: tr.querySelector('.mat-input-cost')
+                };
+                if (inputs.sno) inputs.sno.value = data.sno || '';
+                if (inputs.desc) {
+                    inputs.desc.value = data.desc || '';
+                    setTimeout(() => {
+                        inputs.desc.style.height = 'auto';
+                        inputs.desc.style.height = inputs.desc.scrollHeight + 'px';
+                    }, 10);
+                }
+                if (inputs.quote) inputs.quote.value = data.quote || '';
+                if (inputs.po) inputs.po.value = data.po || '';
+                if (inputs.adv) inputs.adv.value = data.adv || '';
+                if (inputs.sample) inputs.sample.value = data.sample || '';
+                if (inputs.clientApp) inputs.clientApp.value = data.clientApp || '';
+                if (inputs.eta) inputs.eta.value = data.eta || '';
+                if (inputs.remarks) inputs.remarks.value = data.remarks || '';
+                if (inputs.cost) inputs.cost.value = data.cost || '';
+            }
+
+            if (data && type === 'procurement') {
+                const fields = Array.from(tr.querySelectorAll('input, select'));
+                [data.po, data.supplier, data.description, data.orderDate, data.deliveryDate, data.status].forEach((value, index) => { if (fields[index]) fields[index].value = value || fields[index].value; });
+            }
+
+            if(type === 'materials') updateMaterialSummary();
+            else if(type === 'quotations') { saveQuotationsToCloud(); filterQuotations(); }
+        };
+
+        window.exportToExcel = function(tabId, baseFilename) {
+            const tbody = document.getElementById(`${tabId}-body`);
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            if(rows.length === 0) {
+                showToast("No data to export.", "error");
+                return;
+            }
+            const table = document.querySelector(`.table-${tabId}`);
+            const headers = Array.from(table.querySelectorAll('thead th:not(.no-print)')).map(th => th.innerText.replace(/\n/g, ' ').trim());
+            const data = [];
+
+            if (tabId === 'materials') {
+                data.push(["SINYAR ENTERPRISE SUITE - MATERIAL REPORT"]);
+                data.push([`Generated On: ${new Date().toLocaleDateString()}`]);
+                data.push([]);
+            }
+            data.push(headers);
+
+            rows.forEach(row => {
+                const rowData = [];
+                Array.from(row.querySelectorAll('td:not(.no-print)')).forEach(cell => {
+                    const input = cell.querySelector('input, select, textarea');
+                    if (input) rowData.push(input.value);
+                    else if (cell.querySelector('.quote-file-display')) rowData.push(row.dataset.fileName || 'No File');
+                    else rowData.push(cell.innerText.trim());
+                });
+                data.push(rowData);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Report Data");
+            XLSX.writeFile(wb, `${baseFilename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast("Exported successfully to Excel.", "success");
+        };
+
+        window.promptClearTable = function(tabId) {
+            showConfirmModal("Are you sure you want to clear all rows in this view?", () => {
+                document.getElementById(`${tabId}-body`).innerHTML = '';
+                document.getElementById(`${tabId}-empty-state`).style.display = 'flex';
+                if (tabId === 'materials') updateMaterialSummary();
+                showToast("Table cleared.", "info");
+            });
+        };
+
+        window.newReport = function(tabId) {
+            showConfirmModal("Start a new report? Unsaved changes will be reset.", () => {
+                if (tabId === 'materials') {
+                    document.getElementById('mat-proj-number').value = '';
+                    document.getElementById('mat-proj-name').value = '';
+                    document.getElementById('mat-proj-client').value = '';
+                    document.getElementById('mat-proj-week').value = '';
+                    document.getElementById('mat-saved-projects-dropdown').value = '';
+                }
+                document.getElementById(`${tabId}-body`).innerHTML = '';
+                document.getElementById(`${tabId}-empty-state`).style.display = 'flex';
+                if (tabId === 'materials') updateMaterialSummary();
+                showToast("Started new report.", "success");
+            });
+        };
+
+        window.saveToCloudFolder = function() {
+            try {
+                const backup = { version: "3.0", timestamp: new Date().toISOString(), materials: appState.projects, quotations: appState.quotations };
+                
+                const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Sinyar_Enterprise_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast("Backup package generated successfully.", "success");
+            } catch(e) {
+                showToast("Backup export failed.", "error");
+            }
+        };
+
+        window.showConfirmModal = function(msg, onConfirm) {
+            const modal = document.getElementById('confirm-modal');
+            const box = document.getElementById('confirm-modal-box');
+            document.getElementById('confirm-modal-msg').textContent = msg;
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+                box.classList.add('scale-100');
+            });
+            const close = () => {
+                modal.classList.add('opacity-0');
+                box.classList.remove('scale-100');
+                box.classList.add('scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            };
+            document.getElementById('confirm-modal-cancel').onclick = close;
+            document.getElementById('confirm-modal-proceed').onclick = () => { close(); onConfirm(); };
+        };
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            switchTab('materials');
+            try {
+                const result = await api('/auth/me');
+                currentUser = result.user;
+                document.getElementById('user-badge').textContent = `User: ${currentUser.uid} (${currentUser.role.toUpperCase()})`;
+                document.getElementById('auth-screen').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                await initCloudSync();
+            } catch (error) {
+                updateSavedProjectsDropdown();
+            }
+        });
+    </script>
+</body>
+</html>
