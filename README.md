@@ -6,7 +6,7 @@ The existing HTML UI is served unchanged by an Express backend. Application reco
 
 ```text
 Browser -> Express API -> PostgreSQL
-					-> storage adapter (local development, S3/R2/Supabase extension point)
+					-> Supabase Storage (private bucket; local storage for development only)
 ```
 
 ## Local setup
@@ -36,7 +36,9 @@ docker compose up --build
 
 Open `http://localhost:3000/sinyar_enterprise_procurement_and_quotation_tracker_suite%20(2).html`.
 
-For production, put the service behind HTTPS, set `COOKIE_SECURE=true`, use a strong session secret, and replace the local file adapter in `POST /api/files` and `GET /api/files/:key` with S3, Cloudflare R2, or Supabase Storage. PostgreSQL only stores file metadata and storage keys.
+For production, put the service behind HTTPS, set `COOKIE_SECURE=true`, use a strong session secret, use the Supabase pooled `DATABASE_URL` on port `6543`, and configure the server-only Supabase service-role key. PostgreSQL stores file metadata and storage keys; file bytes remain in the private Supabase Storage bucket.
+
+Uploads are limited to 4 MB because of Vercel request-body limits. Run `npm run setup:storage` manually after configuring Supabase; the script creates the private bucket idempotently and never runs during a cold start.
 
 ## Legacy migration
 

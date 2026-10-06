@@ -8,10 +8,11 @@
     "dev": "node --watch server.js",
     "migrate": "node scripts/migrate.js",
     "migrate:legacy": "node scripts/migrate-legacy.js",
+    "setup:storage": "node scripts/setup-storage.js",
     "test": "node --test test/integration.test.js"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.750.0",
+    "@supabase/supabase-js": "^2.49.8",
     "bcryptjs": "^2.4.3",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.5",

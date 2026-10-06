@@ -26,12 +26,11 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
-      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
-      UPLOAD_DIR: /app/uploads
+      STORAGE_PROVIDER: supabase
+      SUPABASE_URL: ${SUPABASE_URL:?set SUPABASE_URL in .env}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?set SUPABASE_SERVICE_ROLE_KEY in .env}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-sinyar-files}
     ports:
       - "3000:3000"
-    volumes:
-      - uploads_data:/app/uploads
 volumes:
   postgres_data:
-  uploads_data:

@@ -107,3 +107,11 @@ CREATE INDEX IF NOT EXISTS procurement_project_idx ON procurement_items(project_
 CREATE INDEX IF NOT EXISTS files_owner_idx ON files(owner_id);
 CREATE INDEX IF NOT EXISTS audit_actor_idx ON audit_logs(actor_id);
 CREATE INDEX IF NOT EXISTS audit_created_idx ON audit_logs(created_at);
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE material_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quotations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE procurement_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
