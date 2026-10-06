@@ -1,6 +1,7 @@
-import 'dotenv/config';
-import { createClient } from '@supabase/supabase-js';
+require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
 
+async function main() {
 const url = process.env.SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'sinyar-files';
@@ -15,3 +16,5 @@ if (!buckets.some(item => item.name === bucket)) {
 } else {
   console.log(`Private bucket ${bucket} already exists; no changes made.`);
 }
+}
+main().catch(error => { console.error(error.message); process.exitCode = 1; });

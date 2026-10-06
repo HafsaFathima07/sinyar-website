@@ -1,20 +1,18 @@
-import 'dotenv/config';
-import express from 'express';
-import session from 'express-session';
-import pgSession from 'connect-pg-simple';
-import pg from 'pg';
-import bcrypt from 'bcryptjs';
-import helmet from 'helmet';
-import cors from 'cors';
-import rateLimit from 'express-rate-limit';
-import multer from 'multer';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { z } from 'zod';
-import { createStorage } from './storage.js';
+require('dotenv').config();
+const express = require('express');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple');
+const pg = require('pg');
+const bcrypt = require('bcryptjs');
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+const path = require('node:path');
+const { z } = require('zod');
+const { createStorage } = require('./storage.js');
 
 const { Pool } = pg;
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const env = process.env;
 const port = Number(env.PORT || 3000);
 const frontendUrl = env.FRONTEND_URL || `http://localhost:${port}`;
@@ -147,5 +145,5 @@ app.use(express.static(__dirname));
 app.use((error, _req, res, _next) => { if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File exceeds the 4 MB limit.' }); const status = error.status || (error.code === '23505' ? 409 : 500); if (status >= 500) console.error(error); res.status(status).json({ error: status === 500 ? 'Internal server error.' : error.message }); });
 
 async function start() { if (process.exitCode) return; try { if (!isVercel) await storage.init(); await pool.query('SELECT 1'); await ensureAdmin(); app.listen(port, () => console.log(`Sinyar Tracker backend listening on ${frontendUrl} (${nodeEnv})`)); } catch (error) { console.error(`Startup failed: unable to connect to PostgreSQL. ${error.message}`); process.exitCode = 1; } }
-if (!env.VERCEL) await start();
-export { app, pool };
+if (!env.VERCEL) start();
+module.exports = app;

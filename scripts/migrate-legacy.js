@@ -1,9 +1,10 @@
-import 'dotenv/config';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import pg from 'pg';
-import bcrypt from 'bcryptjs';
+require('dotenv').config();
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const pg = require('pg');
+const bcrypt = require('bcryptjs');
 
+async function main() {
 const source = process.argv[2];
 if (!source) throw new Error('Usage: npm run migrate:legacy -- ./legacy-export.json');
 if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
@@ -38,3 +39,5 @@ try {
   }
   console.log(JSON.stringify({ imported: true, failures }, null, 2));
 } finally { await pool.end(); }
+}
+main().catch(error => { console.error(error.message); process.exitCode = 1; });

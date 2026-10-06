@@ -1,12 +1,12 @@
-import crypto from 'node:crypto';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { createClient } from '@supabase/supabase-js';
+const crypto = require('node:crypto');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const { createClient } = require('@supabase/supabase-js');
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024;
 const DEFAULT_BUCKET = 'sinyar-files';
 
-export function createStorage({ provider = process.env.STORAGE_PROVIDER, uploadDir, supabaseUrl, serviceRoleKey, bucket = DEFAULT_BUCKET, isVercel = false, nodeEnv = 'development' }) {
+function createStorage({ provider = process.env.STORAGE_PROVIDER, uploadDir, supabaseUrl, serviceRoleKey, bucket = DEFAULT_BUCKET, isVercel = false, nodeEnv = 'development' }) {
   let client;
   let configurationError;
 
@@ -92,4 +92,4 @@ export function createStorage({ provider = process.env.STORAGE_PROVIDER, uploadD
   };
 }
 
-export { MAX_FILE_SIZE, DEFAULT_BUCKET };
+module.exports = { createStorage, MAX_FILE_SIZE, DEFAULT_BUCKET };

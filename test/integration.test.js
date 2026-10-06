@@ -1,10 +1,10 @@
-import 'dotenv/config';
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import request from 'supertest';
+require('dotenv').config();
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const request = require('supertest');
 
 process.env.VERCEL = '1';
-const { app } = await import('../server.js');
+const app = require('../server.js');
 const adminUser = process.env.ADMIN_USERNAME || 'SALEEM';
 const adminPassword = process.env.ADMIN_PASSWORD;
 
