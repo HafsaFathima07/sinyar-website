@@ -772,6 +772,7 @@
             if (!tbody) return;
             const rows = Array.from(tbody.querySelectorAll('tr'));
             const quotes = rows.map(tr => ({
+                id: tr.dataset.recordId ? Number(tr.dataset.recordId) : undefined,
                 ref: tr.querySelector('.quote-input-ref')?.value || '',
                 project: tr.querySelector('.quote-input-project')?.value || '',
                 vendor: tr.querySelector('.quote-input-vendor')?.value || '',
@@ -1033,9 +1034,13 @@
             showToast("Quotation document removed.", "info");
         };
 
-        window.deleteRow = function(btn, type) {
+        window.deleteRow = async function(btn, type) {
             const tr = btn.closest('tr');
             if (!tr) return;
+            const recordId = tr.dataset.recordId;
+            if (recordId && (type === 'quotations' || type === 'procurement')) {
+                try { await api(`/${type}/${recordId}`, { method: 'DELETE' }); } catch (error) { showToast(error.message, 'error'); return; }
+            }
             const tbody = tr.parentElement;
             tr.remove();
 
@@ -1059,7 +1064,7 @@
             if (!tbody || !currentUser) return;
             const procurement = Array.from(tbody.querySelectorAll('tr')).map(tr => {
                 const fields = Array.from(tr.querySelectorAll('input, select'));
-                return { po: fields[0]?.value || '', supplier: fields[1]?.value || '', description: fields[2]?.value || '', orderDate: fields[3]?.value || '', deliveryDate: fields[4]?.value || '', status: fields[5]?.value || 'Draft' };
+                return { id: tr.dataset.recordId ? Number(tr.dataset.recordId) : undefined, po: fields[0]?.value || '', supplier: fields[1]?.value || '', description: fields[2]?.value || '', orderDate: fields[3]?.value || '', deliveryDate: fields[4]?.value || '', status: fields[5]?.value || 'Draft' };
             });
             appState.procurement = procurement;
             await api('/procurement', { method: 'PUT', ...json({ procurement }) });
@@ -1281,6 +1286,7 @@
             if (emptyState) emptyState.style.display = 'none';
 
             if (data && type === 'quotations') {
+                if (data.id) tr.dataset.recordId = data.id;
                 const inputs = {
                     ref: tr.querySelector('.quote-input-ref'),
                     project: tr.querySelector('.quote-input-project'),
@@ -1338,6 +1344,7 @@
             }
 
             if (data && type === 'procurement') {
+                if (data.id) tr.dataset.recordId = data.id;
                 const fields = Array.from(tr.querySelectorAll('input, select'));
                 [data.po, data.supplier, data.description, data.orderDate, data.deliveryDate, data.status].forEach((value, index) => { if (fields[index]) fields[index].value = value || fields[index].value; });
             }
